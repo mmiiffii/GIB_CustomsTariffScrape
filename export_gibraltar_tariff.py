@@ -49,8 +49,6 @@ def extract_chapter_name(text: str, chapter: int) -> str:
         if not line:
             continue
 
-        # Look for something like:
-        # 01 CHAPTER 01 - LIVE ANIMALS
         m = re.match(rf"^{chapter_str}\s+(CHAPTER\s+.+)$", line)
         if m:
             return m.group(1).strip()
@@ -133,7 +131,6 @@ def main():
                 }
             )
         else:
-            # Still include it as blank for visibility
             chapter_records.append(
                 {
                     "chapter": f"{chapter:02d}",
@@ -146,7 +143,6 @@ def main():
         print(f"  -> found {len(chapter_codes)} codes")
         all_records.extend(chapter_codes)
 
-        # politeness delay
         time.sleep(0.3)
 
     # Global dedupe for codes
@@ -161,7 +157,7 @@ def main():
 
     print(f"Total codes collected: {len(deduped_records)}")
 
-    # Ensure /data style dirs exist for both outputs
+    # Ensure /data dirs exist for both outputs
     codes_out_file = args.codes_outfile
     chapters_out_file = args.chapters_outfile
 
@@ -178,7 +174,7 @@ def main():
 
     print(f"Wrote codes CSV to {codes_out_file}")
 
-    # Dedupe chapter entries by chapter (if any duplicates)
+    # Dedupe chapter entries by chapter
     chapters_seen = set()
     chapters_clean = []
     for rec in chapter_records:
