@@ -3,10 +3,11 @@ name: Scrape Gibraltar Tariff Codes
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 2 * * *"
+    # Weekly at 02:00 UTC on Sunday
+    - cron: "0 2 * * 0"
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   scrape:
@@ -29,20 +30,14 @@ jobs:
       - name: Run scraper
         run: |
           mkdir -p data
-          python export_gibraltar_tariff.py --outfile data/gibraltar_harmonised_codes.csv
+          python export_gibraltar_tariff.py \
+            --codes-outfile data/gibraltar_harmonised_codes.csv \
+            --chapters-outfile data/gibraltar_chapters.csv
 
-      - name: Upload CSV artifact
+      - name: Upload CSV artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: gibraltar-harmonised-codes
-          path: data/gibraltar_harmonised_codes.csv
-
-      - name: Commit CSV back to repo
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/gibraltar_harmonised_codes.csv || echo "Nothing to add"
-          git commit -m "Update Gibraltar harmonised codes CSV [skip ci]" || echo "No changes to commit"
-          git push || echo "No changes pushed"
+          name: gibraltar-harmonised-codes-and-chapters
+          path: |
+            data/gibraltar_harmonised_codes.csv
+            data/gibraltar_chapters.csv
