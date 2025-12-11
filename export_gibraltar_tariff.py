@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 import csv
 import re
 import time
@@ -12,9 +13,10 @@ BASE_URL = "https://www.hmcustoms.gov.gi/portal/services/tariff/print.jsf?c={cha
 
 # Match codes like:
 # 0101210000-00-00
-# 0511993*00-3*-00
+# 0102292*00-2*-00
+# 010129**00-**-00
 CODE_PATTERN = re.compile(
-    r"\\b\\d{2}[0-9*]{2}[0-9*]{4}-[0-9*]{2}-[0-9*]{2}\\b"
+    r"\b[0-9*]{10}-[0-9*]{2}-[0-9*]{2}\b"
 )
 
 
@@ -22,10 +24,13 @@ def fetch_chapter_text(chapter: int) -> str:
     """Fetch raw text for a chapter from the Gibraltar HM Customs tariff."""
     chapter_str = f"{chapter:02d}"  # 1 -> "01", 10 -> "10"
     url = BASE_URL.format(chapter=chapter_str)
-    resp = requests.get(url, headers={"User-Agent": "tariff-scraper/1.0"})
+
+    # Simple GET; GitHub runner is ephemeral so no local crumbs
+    resp = requests.get(url, timeout=30)
     resp.raise_for_status()
+
     soup = BeautifulSoup(resp.text, "html.parser")
-    text = soup.get_text("\\n", strip=True)
+    text = soup.get_text("\n", strip=True)
     return text
 
 
@@ -64,7 +69,9 @@ def extract_codes_from_text(text: str, chapter: int) -> List[Dict[str, str]]:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Export Gibraltar harmonised tariff codes to CSV.")
+    parser = argparse.ArgumentParser(
+        description="Export Gibraltar harmonised tariff codes to CSV."
+    )
     parser.add_argument(
         "--outfile",
         default="gibraltar_harmonised_codes.csv",
@@ -89,8 +96,10 @@ def main():
         print(f"  -> found {len(chapter_records)} codes")
         all_records.extend(chapter_records)
 
+        # small politeness delay
         time.sleep(0.3)
 
+    # Global dedupe
     final_seen = set()
     deduped_records = []
     for rec in all_records:
@@ -105,7 +114,6 @@ def main():
     out_file = args.outfile
     out_dir = os.path.dirname(out_file)
     if out_dir:
-        import os
         os.makedirs(out_dir, exist_ok=True)
 
     with open(out_file, "w", newline="", encoding="utf-8") as f:
